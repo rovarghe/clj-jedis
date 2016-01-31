@@ -3,7 +3,6 @@
             GeoCoordinate
             GeoRadiusResponse
             GeoUnit
-
             HostAndPort
             Jedis
             JedisPool
@@ -37,21 +36,25 @@
   (get-conn [this] this)
   (release-conn [this conn]))
 
-(defmacro defpool
+(defmacro pool
   "Define a pool"
-  [name & options]
+  [host port & options]
 
   ;; TODO - parse options
-  `(def ~name (JedisPool.)))
+  `(JedisPool. ~host (int ~port)))
 
-(defmacro defcluster
+(defmacro cluster
   "Define a cluster.
-cluster - sequence of host and port pairs"
-  [name cluster]
-  `(def ~name (->> ~cluster
-                   (map #(HostAndPort. (first %1) (second %1)))
-                   (apply hash-set)
-                   (JedisCluster.))))
+
+  cluster - comma-seperated host:port pairs"
+
+  [host-port-seq]
+
+  `(->> (clojure.string/split ~host-port-seq #",")
+        (map #(clojure.string/split % #":"))
+        (map #(HostAndPort. (first %1) (Integer/parseInt (second %1))))
+        (apply hash-set)
+        (JedisCluster.)))
 
 ;; Redis commands
 
@@ -96,8 +99,12 @@ cluster - sequence of host and port pairs"
 (defn hkeys [k]
   (.hkeys ^Jedis *jedis* k))
 
-(defn hmset [k & fvm]
-  (.hmset ^Jedis *jedis* k (apply hash-map fvm)))
+(defn hmset
+  ([k fvm]
+     (.hmset ^Jedis *jedis* k fvm))
+  ([k f v & fvs]
+     (println fvs)
+    (.hmset ^Jedis *jedis* k (merge {f v} (apply hash-map fvs)))))
 
 (defn hmget [k & fs]
   (.hmget ^Jedis *jedis* k (into-array fs)))

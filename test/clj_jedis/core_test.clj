@@ -4,25 +4,31 @@
   (:import [redis.clients.jedis JedisCluster JedisPool]))
 
 
-(deftest test-defcluster
+(deftest test-cluster
 
-  (is JedisCluster (type (defcluster MINE [["localhost" 8001]]))))
+  (is JedisCluster (type (cluster "localhost:9001"))))
 
-(deftest test-defpool
+(deftest test-pool
 
-  (is JedisPool (type (defpool POOL {}))))
+  (is JedisPool (type (pool "localhost" 9001))))
 
 (def A-Z (map #(str (char (int %))) (range 65 90) ))
+(def POOL (pool "localhost" 9001))
+
+(def CLUSTER (cluster "localhost:9001,localhost:9002"))
+
+
+#_(with-jedis CLUSTER
+  (clj-jedis.core/set "A" "1"))
 
 (deftest test-with-jedis
-  (with-jedis  POOL
+  (with-jedis  CLUSTER
     (doall  (map #(clj-jedis.core/set % %) A-Z))
     (doall  (is A-Z (map clj-jedis.core/get A-Z)))))
 
 
-(deftest test-get-set-functions
-  (doseq [jedis [POOL MINE]]
-    (with-jedis jedis
+(defn test-redis-functions [jedis]
+  (with-jedis jedis
       (clj-jedis.core/set "COUNTER" "0")
       (is "1" (clj-jedis.core/incr "COUNTER"))
       (clj-jedis.core/hset "K1" "F" "Hello worldஇணைப்புகள்")
@@ -34,7 +40,13 @@
       (clj-jedis.core/geoadd "India" 13.11 22.11 "Goa")
       (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa")))
       (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa" :km)))
-      (is ["Mumbai" "Goa"] (clj-jedis.core/georadius "India" 12.22 20.0 10000 :mi)))))
+      (is ["Mumbai" "Goa"] (clj-jedis.core/georadius "India" 12.22 20.0 10000 :mi))))
 
+#_(deftest pool-test
+  (test-redis-functions POOL))
 
+(deftest cluster-test
+  (test-redis-functions CLUSTER))
+
+(deftest pool-test)
 (run-tests)
