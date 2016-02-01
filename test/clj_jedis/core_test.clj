@@ -32,6 +32,7 @@
       (clj-jedis.core/set "COUNTER" "0")
       (is "1" (clj-jedis.core/incr "COUNTER"))
       (clj-jedis.core/hset "K1" "F" "Hello worldஇணைப்புகள்")
+      (is (clj-jedis.core/hexists "K1" "F"))
       (is "Hello worldஇணைப்புகள்" (clj-jedis.core/hget "K1" "F"))
       (is ["F"] (clj-jedis.core/hkeys "K1"))
       (clj-jedis.core/hmset "J1" "F" "1" "G" "World")

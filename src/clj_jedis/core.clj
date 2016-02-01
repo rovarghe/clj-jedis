@@ -58,6 +58,11 @@
         (apply hash-set)
         (JedisCluster.)))
 
+;; Utility commands
+(defn truthy? [expr]
+  (#{"1" "OK"} (str ~expr)))
+
+
 ;; Redis commands
 
 (defn geo-unit [unit]
@@ -95,11 +100,17 @@
 (defn hset [k f v]
   (.hset ^Jedis *jedis* k f v))
 
+(defn hsetnx [k f v]
+  (.hsetnx ^Jedis *jedis* k f v))
+
 (defn hget [k f]
   (.hget ^Jedis *jedis* k f))
 
 (defn hkeys [k]
   (.hkeys ^Jedis *jedis* k))
+
+(defn hexists [k f]
+  (.hexists ^Jedis *jedis* k f))
 
 (defn hmset
   ([k fvm]
