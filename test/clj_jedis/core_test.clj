@@ -10,10 +10,10 @@
 
 (deftest test-pool
 
-  (is JedisPool (type (pool "localhost" 9001))))
+  (is JedisPool (type (pool "localhost:9001"))))
 
 (def A-Z (map #(str (char (int %))) (range 65 90) ))
-(def POOL (pool "localhost" 9001))
+(def POOL (pool "localhost:9001"))
 
 (def CLUSTER (cluster "localhost:9001,localhost:9002"))
 

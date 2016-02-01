@@ -38,10 +38,12 @@
 
 (defmacro pool
   "Define a pool"
-  [host port & options]
+  [host-port & options]
 
   ;; TODO - parse options
-  `(JedisPool. ~host (int ~port)))
+  `(let [[host# port#] (clojure.string/split ~host-port #":")
+         int-port# (Integer/parseInt port#)]
+     (JedisPool. host# int-port#)))
 
 (defmacro cluster
   "Define a cluster.
