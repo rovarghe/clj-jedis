@@ -59,11 +59,33 @@
         (JedisCluster.)))
 
 ;; Utility commands
-(defn truthy? [expr]
-  (#{"1" "OK"} (str ~expr)))
+(defn truthy? [value]
+  (or (true? value) (#{"1" "OK"} (str value))))
 
+(defn falsy? [expr]
+  (not (truthy? expr)))
+
+;; Bridge commands - till they get implemented by JedisCluster
+(defn keys [pattern]
+  (vec (.eval ^Jedis *jedis* "return redis.call('keys',KEYS[1])" [pattern] [])))
 
 ;; Redis commands
+
+(defn flushall []
+  (.flushAll *jedis*))
+
+(defn flushdb []
+  (.flushDB  *jedis*))
+
+(defn del [k]
+  (.del ^Jedis *jedis* k))
+
+(defn hscan
+  ([k cursor]
+     (let [result (.hscan ^Jedis *jedis* k (str cursor))]
+       {:cursor (.getCursor result)
+        :result (map #(vector (.getKey %) (.getValue %))
+                     (.getResult result))})))
 
 (defn geo-unit [unit]
   "Converts :km :mi :m :ft into GeoCoordinate"
@@ -97,14 +119,23 @@
 (defn get [k]
   (.get ^Jedis *jedis* k))
 
-(defn hset [k f v]
-  (.hset ^Jedis *jedis* k f v))
+(defn hset
+  ([k f v]
+      (.hset ^Jedis *jedis* k f v)))
 
 (defn hsetnx [k f v]
   (.hsetnx ^Jedis *jedis* k f v))
 
 (defn hget [k f]
   (.hget ^Jedis *jedis* k f))
+
+(defn hgetall [k]
+  (reduce (fn [c x]
+            (println "c=" c)
+            (println "x=" x)
+            (assoc c (.getKey x) (.getValue x)))
+          {}
+          (.hgetAll ^Jedis *jedis* k)))
 
 (defn hkeys [k]
   (.hkeys ^Jedis *jedis* k))
@@ -125,8 +156,8 @@
 (defn incr [k]
   (.incr ^Jedis *jedis* k))
 
-(defn keys [p]
-  (.keys ^Jedis *jedis* p))
+(defn decr [k]
+  (.decr ^Jedis *jedis* k))
 
 (defn mget [& ks]
   (.mget ^Jedis *jedis* (into-array ks)))
