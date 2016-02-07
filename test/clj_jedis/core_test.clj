@@ -3,7 +3,6 @@
             [clj-jedis.core :as jc])
   (:import [redis.clients.jedis JedisCluster JedisPool]))
 
-
 (deftest test-cluster
 
   (is JedisCluster (type (jc/cluster "localhost:9001"))))
@@ -26,9 +25,8 @@
     (doall  (map #(clj-jedis.core/set % %) A-Z))
     (doall  (is A-Z (map clj-jedis.core/get A-Z)))))
 
-
-(defn test-redis-functions [jedis]
-  (jc/with-jedis jedis
+(deftest test-redis-functions
+  (jc/with-jedis CLUSTER
     (is (jc/truthy? true))
     (jc/set "COUNTER" "0")
     (is (pos? (count (jc/keys "C*"))))
@@ -51,8 +49,28 @@
 #_(deftest pool-test
   (test-redis-functions POOL))
 
-(deftest cluster-test
+#_(deftest cluster-test
   (test-redis-functions CLUSTER))
 
 (deftest pool-test)
-(run-tests)
+
+(defn trans-enc [k v]
+  (condp = k
+    "z" (name v)
+    v))
+
+(defn trans-dec [k v]
+
+  (condp = k
+    "z" (keyword v)
+    v))
+
+(deftest utility-test
+
+  (let [in {:foo 1 :bar "233" :baz :que :k 'Foo :nil-value nil}
+        km {:foo "f" :bar "b" :baz "z" :does-not-exist "nil"}
+        rkm (clojure.set/map-invert km)
+        enc (jc/hmencode in km trans-enc)
+        de (jc/hmdecode enc rkm #{:nil-value} trans-dec)]
+
+    (is (= in de))))

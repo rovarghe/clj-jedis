@@ -1,4 +1,5 @@
 (ns clj-jedis.core
+  (:require [clojure.set])
   (:import [redis.clients.jedis
             GeoCoordinate
             GeoRadiusResponse
@@ -65,6 +66,47 @@
 (defn falsy? [expr]
   (not (truthy? expr)))
 
+(defn- seq-convert
+  ([c [k v]]  (if v (conj c k v) c))
+  ([f c [k v]] (if v (conj c k (f k v)) c)))
+
+(defn- map-convert
+  ([c [k v]] (assoc c k v))
+  ([f c [k v]] (assoc c k (f k v))))
+
+#_(defmacro prn-> [arg ]
+  `(do (println "arg-->" ~arg)
+       ~arg))
+
+(defn value-converter [f]
+  (fn [k v]
+    ((or (f k) str) v)))
+
+(defn hmencode
+  "Convert a map 'm' into a seq of key-value pairs, replacing
+each key with value in source map with value from km map.
+Nil values in source map are eliminated"
+  ([m km] (hmencode m km nil))
+  ([m km f]
+
+     (let [r (if f (partial seq-convert f) seq-convert)]
+
+       (->> (clojure.set/rename-keys m km)
+            (reduce r)))))
+
+(defn hmdecode
+  "Opposite of hmencode, convert seq into map using km as
+lookup table"
+  ([s km] (hmdecode s km nil ))
+  ([s km f] (hmdecode s km nil f))
+  ([s km ns f]
+     (let [r (if f (partial map-convert f) map-convert)
+           m (-> (reduce r {} (partition 2 s)) (clojure.set/rename-keys km))
+           d (->> m (keys) (apply hash-set) (clojure.set/difference ns))
+           d (interleave d (repeat nil))
+           m (->> d (partition 2) (reduce map-convert m))]
+       m)))
+
 ;; Bridge commands - till they get implemented by JedisCluster
 (defn keys [pattern]
   (vec (.eval ^Jedis *jedis* "return redis.call('keys',KEYS[1])" [pattern] [])))
@@ -124,15 +166,18 @@
       (.hset ^Jedis *jedis* k f v)))
 
 (defn hsetnx [k f v]
-  (.hsetnx ^Jedis *jedis* k f v))
+  (assert (= java.lang.String (type v)))
+    (assert (= java.lang.String (type f)))
+  (truthy? (.hsetnx ^Jedis *jedis* k f v)))
+
+(defn hdel [h & fields]
+  (.hdel ^Jedis *jedis* h (into-array fields)))
 
 (defn hget [k f]
   (.hget ^Jedis *jedis* k f))
 
 (defn hgetall [k]
   (reduce (fn [c x]
-            (println "c=" c)
-            (println "x=" x)
             (assoc c (.getKey x) (.getValue x)))
           {}
           (.hgetAll ^Jedis *jedis* k)))
@@ -141,13 +186,12 @@
   (.hkeys ^Jedis *jedis* k))
 
 (defn hexists [k f]
-  (.hexists ^Jedis *jedis* k f))
+  (truthy? (.hexists ^Jedis *jedis* k f)))
 
 (defn hmset
   ([k fvm]
      (.hmset ^Jedis *jedis* k fvm))
   ([k f v & fvs]
-     (println fvs)
     (.hmset ^Jedis *jedis* k (merge {f v} (apply hash-map fvs)))))
 
 (defn hmget [k & fs]
