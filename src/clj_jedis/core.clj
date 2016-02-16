@@ -82,6 +82,8 @@
   (fn [k v]
     ((or (f k) str) v)))
 
+
+
 (defn hmencode
   "Convert a map 'm' into a seq of key-value pairs, replacing
 each key with value in source map with value from km map.
@@ -161,9 +163,32 @@ lookup table"
 (defn get [k]
   (.get ^Jedis *jedis* k))
 
+(defn exists [k]
+  (truthy? (.exists ^Jedis *jedis* k)))
+
 (defn hset
   ([k f v]
       (.hset ^Jedis *jedis* k f v)))
+
+(defn expire [k secs]
+  (.expire ^Jedis *jedis* k secs))
+
+(defn lpush [k & v]
+  (.lpush ^Jedis *jedis* k (into-array v)))
+
+(defn lpushx
+  ([k & v]
+     (loop [v v]
+       (if (first v)
+         (do
+           (.lpushx ^Jedis *jedis* k (into-array [(first v)]))
+           (recur (rest v)))))))
+
+(defn rpop [k]
+  (.rpop ^Jedis *jedis* k))
+
+(defn rpoplpush [src dest]
+  (.rpoplpush ^Jedis *jedis* src dest))
 
 (defn hsetnx [k f v]
   (assert (= java.lang.String (type v)))

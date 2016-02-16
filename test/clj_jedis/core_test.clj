@@ -1,10 +1,11 @@
 (ns clj-jedis.core-test
   (:require [clojure.test :refer :all]
             [clj-jedis.core :as jc])
-  (:import [redis.clients.jedis JedisCluster JedisPool]))
+  (:import [redis.clients.jedis
+            JedisCluster
+            JedisPool]))
 
 (deftest test-cluster
-
   (is JedisCluster (type (jc/cluster "localhost:9001"))))
 
 (deftest test-pool
@@ -44,7 +45,14 @@
     (is ["Mumbai" "Goa"] (clj-jedis.core/georadius "India" 12.22 20.0 10000 :mi))
     (jc/set "deleteme" "1")
     (is (jc/truthy? (jc/del "deleteme")))
-    (is (nil? (jc/get "deleteme")))))
+    (is (nil? (jc/get "deleteme")))
+    (jc/set "foo" "bar")
+    (jc/expire "foo" 2)
+    (jc/del "foo")
+    (jc/lpush "foo" "1" "2" "3")
+    (is (= "1"  (jc/rpop "foo")))
+    (jc/lpushx "foo-noexist" "1" "2")
+    (is (nil? (jc/rpop "foo-noexist")))))
 
 #_(deftest pool-test
   (test-redis-functions POOL))
@@ -74,3 +82,5 @@
         de (jc/hmdecode enc rkm #{:nil-value} trans-dec)]
 
     (is (= in de))))
+
+(run-tests)
