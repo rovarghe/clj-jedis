@@ -29,6 +29,7 @@
 (deftest test-redis-functions
   (jc/with-jedis CLUSTER
     (is (jc/truthy? true))
+    (is (jc/truthy? "1"))
     (jc/set "COUNTER" "0")
     (is (pos? (count (jc/keys "C*"))))
     (is "1" (clj-jedis.core/incr "COUNTER"))
@@ -48,9 +49,16 @@
     (is (nil? (jc/get "deleteme")))
     (jc/set "foo" "bar")
     (jc/expire "foo" 2)
+
     (jc/del "foo")
+    (jc/del "{foo}:$")
     (jc/lpush "foo" "1" "2" "3")
     (is (= "1"  (jc/rpop "foo")))
+    (is (= "2" (jc/rpoplpush "foo" "{foo}:$")))
+    (is (= "3" (jc/rpoplpush "foo" "{foo}:$")))
+    (is (= [ "3" "2"] (jc/lrange "{foo}:$" 0 -1)))
+    (is (= [] (jc/lrange "foo-noexists" 0 -1)))
+
     (jc/lpushx "foo-noexist" "1" "2")
     (is (nil? (jc/rpop "foo-noexist")))))
 

@@ -184,6 +184,10 @@ lookup table"
            (.lpushx ^Jedis *jedis* k (into-array [(first v)]))
            (recur (rest v)))))))
 
+(defn lrange [k from to]
+  (vec (.lrange ^Jedis *jedis* k from to)))
+
+
 (defn rpop [k]
   (.rpop ^Jedis *jedis* k))
 
