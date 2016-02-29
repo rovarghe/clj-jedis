@@ -68,7 +68,8 @@
 
 (defn- seq-convert
   ([c [k v]]  (if v (conj c k v) c))
-  ([f c [k v]] (if v (conj c k (f k v)) c)))
+  ([f c [k v]]
+     (if v (conj c k (f k v)) c)))
 
 (defn- map-convert
   ([c [k v]] (assoc c k v))
@@ -79,8 +80,9 @@
        ~arg))
 
 (defn value-converter [f]
-  (fn [k v]
-    ((or (f k) str) v)))
+  (let [strfn #(if % (str %))]
+    (fn [k v]
+      ((or (f k) strfn) v))))
 
 
 
@@ -94,7 +96,7 @@ Nil values in source map are eliminated"
      (let [r (if f (partial seq-convert f) seq-convert)]
 
        (->> (clojure.set/rename-keys m km)
-            (reduce r)))))
+            (reduce r [])))))
 
 (defn hmdecode
   "Opposite of hmencode, convert seq into map using km as
@@ -107,6 +109,7 @@ lookup table"
            d (->> m (keys) (apply hash-set) (clojure.set/difference ns))
            d (interleave d (repeat nil))
            m (->> d (partition 2) (reduce map-convert m))]
+
        m)))
 
 ;; Bridge commands - till they get implemented by JedisCluster
@@ -123,6 +126,9 @@ lookup table"
 
 (defn del [k]
   (.del ^Jedis *jedis* k))
+
+(defn scan [cursor pattern]
+  (.scan ^Jedis *jedis* cursor pattern))
 
 (defn hscan
   ([k cursor]

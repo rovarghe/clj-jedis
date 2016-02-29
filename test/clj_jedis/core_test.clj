@@ -38,7 +38,8 @@
     (is "Hello worldஇணைப்புகள்" (clj-jedis.core/hget "K1" "F"))
     (is ["F"] (clj-jedis.core/hkeys "K1"))
     (jc/hmset "J1" "F" "1" "G" "World")
-    (is ["1" "World"] (clj-jedis.core/hmget "J1" "F" "G"))
+    (is (= ["1" "World"] (clj-jedis.core/hmget "J1" "F" "G")))
+    (is (= [nil] (clj-jedis.core/hmget "J1" "non-existent")))
     (jc/geoadd "India" 12.22 21.22 "Mumbai")
     (jc/geoadd "India" 13.11 22.11 "Goa")
     (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa")))
@@ -60,7 +61,13 @@
     (is (= [] (jc/lrange "foo-noexists" 0 -1)))
 
     (jc/lpushx "foo-noexist" "1" "2")
-    (is (nil? (jc/rpop "foo-noexist")))))
+    (is (nil? (jc/rpop "foo-noexist")))
+
+    (jc/set "{scan}:0" "0")
+    (jc/set "{scan}:1" "1")
+    (jc/set "{scan}:2" "2")
+    #_(jc/scan 0 "{scan}:*")
+    ))
 
 #_(deftest pool-test
   (test-redis-functions POOL))
@@ -73,20 +80,25 @@
 (defn trans-enc [k v]
   (condp = k
     "z" (name v)
+    "f" (str v)
+    "k" (str v)
     v))
 
 (defn trans-dec [k v]
 
   (condp = k
     "z" (keyword v)
+    "f" (Integer/parseInt v)
+    "k" (symbol v)
     v))
 
 (deftest utility-test
 
-  (let [in {:foo 1 :bar "233" :baz :que :k 'Foo :nil-value nil}
-        km {:foo "f" :bar "b" :baz "z" :does-not-exist "nil"}
+  (let [in {:baz :que :foo 1 :bar "233" :k 'Foo :nil-value nil}
+        km {:k "k" :foo "f" :bar "b" :baz "z" :does-not-exist "nil"}
         rkm (clojure.set/map-invert km)
         enc (jc/hmencode in km trans-enc)
+        _ (is (every? string? enc))
         de (jc/hmdecode enc rkm #{:nil-value} trans-dec)]
 
     (is (= in de))))
