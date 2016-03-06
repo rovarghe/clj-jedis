@@ -164,7 +164,9 @@ lookup table"
   (.getMemberByString r))
 
 (defn georadius [k lon lat radius unit]
-  (map georadiusresponse  (.georadius ^Jedis *jedis* k lon lat (double radius) (geo-unit unit))))
+  (map georadiusresponse
+       (.georadius ^Jedis *jedis* k
+                   (double lon) (double lat) (double radius) (geo-unit unit))))
 
 (defn get [k]
   (.get ^Jedis *jedis* k))
@@ -232,6 +234,16 @@ lookup table"
 (defn hmget [k & fs]
   (.hmget ^Jedis *jedis* k (into-array fs)))
 
+(defn hscan
+  ([k] (hscan k nil))
+  ([k c]
+     (let [scan-result (.hscan ^Jedis *jedis* k (or c "0"))
+           cursor (.getStringCursor scan-result)
+           result (.getResult scan-result)
+           result-map (reduce (fn [c v]
+                                (assoc c (.getKey v) (.getValue v))) {} result)]
+       {:cursor (if (= "0" cursor) nil cursor) :result result-map})))
+
 (defn incr [k]
   (.incr ^Jedis *jedis* k))
 
@@ -246,3 +258,23 @@ lookup table"
 
 (defn set [k v]
   (.set ^Jedis *jedis* k v))
+
+
+(defn sadd [k & vs]
+  (.sadd ^Jedis *jedis* k (into-array vs)))
+
+(defn smembers [k]
+  (.smembers ^Jedis *jedis* k))
+
+(defn zrem [k & v]
+  (.zrem ^Jedis *jedis* k (into-array v)))
+
+(defn zscan
+  ([k] (zscan k nil))
+  ([k c]
+
+     (let [tuple (.zscan ^Jedis *jedis* k (or c "0"))
+           cursor (.getStringCursor tuple)
+           result (.getResult tuple)
+           result (map #(vector (.getElement %) (.getScore %)) result)]
+       {:cursor (if (= "0" cursor) nil cursor) :result result})))

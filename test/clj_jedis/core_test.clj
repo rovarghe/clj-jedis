@@ -40,11 +40,16 @@
     (jc/hmset "J1" "F" "1" "G" "World")
     (is (= ["1" "World"] (clj-jedis.core/hmget "J1" "F" "G")))
     (is (= [nil] (clj-jedis.core/hmget "J1" "non-existent")))
+    (is {"F" "1" "G" "World"} (jc/hscan "J1" nil))
     (jc/geoadd "India" 12.22 21.22 "Mumbai")
     (jc/geoadd "India" 13.11 22.11 "Goa")
     (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa")))
     (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa" :km)))
     (is ["Mumbai" "Goa"] (clj-jedis.core/georadius "India" 12.22 20.0 10000 :mi))
+    (is (= (let [{cursor :cursor
+                  result :result} (jc/zscan "India")
+                  [[m _] [g _]] result] [cursor m g])
+           [nil "Mumbai" "Goa"]))
     (jc/set "deleteme" "1")
     (is (jc/truthy? (jc/del "deleteme")))
     (is (nil? (jc/get "deleteme")))
@@ -67,6 +72,15 @@
     (jc/set "{scan}:1" "1")
     (jc/set "{scan}:2" "2")
     #_(jc/scan 0 "{scan}:*")
+
+    (jc/del "sadd-test")
+    (is (jc/truthy? (jc/sadd "sadd-test" "0")))
+    (is (jc/truthy? (jc/sadd "sadd-test" "1")))
+    (is (jc/truthy? (jc/sadd "sadd-test" "2")))
+    (is (not (jc/truthy? (jc/sadd "sadd-test" "0"))))
+    (is (= #{"0" "1" "2"} (jc/smembers "sadd-test")))
+
+
     ))
 
 #_(deftest pool-test
