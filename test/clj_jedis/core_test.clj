@@ -43,6 +43,8 @@
     (is {"F" "1" "G" "World"} (jc/hscan "J1" nil))
     (jc/geoadd "India" 12.22 21.22 "Mumbai")
     (jc/geoadd "India" 13.11 22.11 "Goa")
+    (is (= [true true] (map string? (vals (first (jc/geopos "India" "Goa" "Mumbai"))))))
+
     (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa")))
     (is (pos? (clj-jedis.core/geodist "India" "Mumbai" "Goa" :km)))
     (is ["Mumbai" "Goa"] (clj-jedis.core/georadius "India" 12.22 20.0 10000 :mi))
@@ -68,6 +70,10 @@
     (jc/lpushx "foo-noexist" "1" "2")
     (is (nil? (jc/rpop "foo-noexist")))
 
+    (jc/del "foo")
+    (jc/rpush "foo" "1" "2" "3")
+    (is (= ["1" "2"  "3"] (jc/lrange "foo" 0 -1)))
+
     (jc/set "{scan}:0" "0")
     (jc/set "{scan}:1" "1")
     (jc/set "{scan}:2" "2")
@@ -77,8 +83,12 @@
     (is (jc/truthy? (jc/sadd "sadd-test" "0")))
     (is (jc/truthy? (jc/sadd "sadd-test" "1")))
     (is (jc/truthy? (jc/sadd "sadd-test" "2")))
+    (is (jc/truthy? (jc/sadd "sadd-test" "3")))
     (is (not (jc/truthy? (jc/sadd "sadd-test" "0"))))
-    (is (= #{"0" "1" "2"} (jc/smembers "sadd-test")))
+    (is (= #{"0" "1" "2" "3"} (jc/smembers "sadd-test")))
+    (jc/srem "sadd-test" "1")
+    (is (= ["0"  "2" "3"] (:result (jc/sscan "sadd-test"))))
+
 
 
     ))

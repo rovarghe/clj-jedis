@@ -130,13 +130,6 @@ lookup table"
 (defn scan [cursor pattern]
   (.scan ^Jedis *jedis* cursor pattern))
 
-(defn hscan
-  ([k cursor]
-     (let [result (.hscan ^Jedis *jedis* k (str cursor))]
-       {:cursor (.getCursor result)
-        :result (map #(vector (.getKey %) (.getValue %))
-                     (.getResult result))})))
-
 (defn geo-unit [unit]
   "Converts :km :mi :m :ft into GeoCoordinate"
   (condp = unit
@@ -168,6 +161,12 @@ lookup table"
        (.georadius ^Jedis *jedis* k
                    (double lon) (double lat) (double radius) (geo-unit unit))))
 
+(defn- geoposresponse [^GeoCoordinate gc]
+  {:lat (str (.getLatitude gc)) :lon (str (.getLongitude gc))})
+
+(defn geopos [k & v]
+  (map geoposresponse (.geopos ^Jedis *jedis* k (into-array v))))
+
 (defn get [k]
   (.get ^Jedis *jedis* k))
 
@@ -195,6 +194,8 @@ lookup table"
 (defn lrange [k from to]
   (vec (.lrange ^Jedis *jedis* k from to)))
 
+(defn rpush [k & v]
+  (.rpush ^Jedis *jedis* k (into-array v)))
 
 (defn rpop [k]
   (.rpop ^Jedis *jedis* k))
@@ -265,6 +266,18 @@ lookup table"
 
 (defn smembers [k]
   (.smembers ^Jedis *jedis* k))
+
+(defn srem [k & vs]
+  (.srem ^Jedis *jedis* k (into-array vs)))
+
+(defn sscan
+  ([k] (sscan k nil))
+  ([k c]
+
+     (let [tuple (.sscan ^Jedis *jedis* k (or c "0"))
+           cursor (.getStringCursor tuple)
+           result (.getResult tuple)]
+       {:cursor (if (= "0" cursor) nil cursor) :result result})))
 
 (defn zrem [k & v]
   (.zrem ^Jedis *jedis* k (into-array v)))
