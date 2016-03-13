@@ -77,7 +77,7 @@
     (jc/set "{scan}:0" "0")
     (jc/set "{scan}:1" "1")
     (jc/set "{scan}:2" "2")
-    #_(jc/scan 0 "{scan}:*")
+    (jc/scan 0 "{scan}:*")
 
     (jc/del "sadd-test")
     (is (jc/truthy? (jc/sadd "sadd-test" "0")))
@@ -89,9 +89,11 @@
     (jc/srem "sadd-test" "1")
     (is (= ["0"  "2" "3"] (:result (jc/sscan "sadd-test"))))
 
+    (is (= "Hello" (jc/eval "return 'Hello'" [] [])))
 
-
-    ))
+    (let [sha (jc/scriptload "return 'World'" "")]
+      (is sha)
+      (jc/evalsha sha [] []))))
 
 #_(deftest pool-test
   (test-redis-functions POOL))

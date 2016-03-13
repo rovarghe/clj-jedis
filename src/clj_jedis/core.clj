@@ -35,7 +35,13 @@
 
   Jedis
   (get-conn [this] this)
-  (release-conn [this conn]))
+  (release-conn [this conn])
+
+  nil
+  (get-conn [this]
+    (throw (ex-info "Connection not initialized" {})))
+  (release-conn [this]
+    (throw (ex-info "Connection not initialized" {}))))
 
 (defmacro pool
   "Define a pool"
@@ -130,6 +136,19 @@ lookup table"
 (defn scan [cursor pattern]
   (.scan ^Jedis *jedis* cursor pattern))
 
+(defn eval [script keys args]
+  (.eval ^Jedis *jedis* script
+         (if (empty? keys) [(str (java.util.UUID/randomUUID))] keys)
+         args))
+
+(defn evalsha [sha1 keys args]
+  (.evalsha ^Jedis *jedis* sha1
+         (if (empty? keys) [(str (java.util.UUID/randomUUID))] keys)
+         args))
+
+(defn scriptload [script key]
+  (.scriptLoad ^Jedis *jedis* script key))
+
 (defn geo-unit [unit]
   "Converts :km :mi :m :ft into GeoCoordinate"
   (condp = unit
@@ -169,6 +188,12 @@ lookup table"
 
 (defn get [k]
   (.get ^Jedis *jedis* k))
+
+(defn set [k v]
+  (.set ^Jedis *jedis* k v))
+
+(defn getset [k v]
+  (.getSet ^Jedis *jedis* k v))
 
 (defn exists [k]
   (truthy? (.exists ^Jedis *jedis* k)))
@@ -257,8 +282,7 @@ lookup table"
 (defn mset [& ks]
   (.mset ^Jedis *jedis* (into-array ks)))
 
-(defn set [k v]
-  (.set ^Jedis *jedis* k v))
+
 
 
 (defn sadd [k & vs]
