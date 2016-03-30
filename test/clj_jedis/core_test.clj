@@ -18,8 +18,8 @@
 (def CLUSTER (jc/cluster "localhost:9001,localhost:9002"))
 
 
-#_(with-jedis CLUSTER
-  (clj-jedis.core/set "A" "1"))
+#(jc/with-jedis CLUSTER
+  (jc/zscan "ztest1"))
 
 (deftest test-with-jedis
   (jc/with-jedis  CLUSTER
@@ -74,10 +74,10 @@
     (jc/rpush "foo" "1" "2" "3")
     (is (= ["1" "2"  "3"] (jc/lrange "foo" 0 -1)))
 
-    (jc/set "{scan}:0" "0")
-    (jc/set "{scan}:1" "1")
-    (jc/set "{scan}:2" "2")
-    (jc/scan 0 "{scan}:*")
+    #_( (jc/set "{scan}:0" "0")
+      (jc/set "{scan}:1" "1")
+      (jc/set "{scan}:2" "2")
+      (jc/scan "0"  "{scan}:*"))
 
     (jc/del "sadd-test")
     (is (jc/truthy? (jc/sadd "sadd-test" "0")))
@@ -92,8 +92,12 @@
     (is (= "Hello" (jc/eval "return 'Hello'" [] [])))
 
     (let [sha (jc/scriptload "return 'World'" "")]
+      (println sha)
       (is sha)
-      (jc/evalsha sha [] []))))
+      (jc/evalsha sha [""] []))
+
+    (is (= 2 (jc/zadd "ztest1" "One" 1.1 "Two" 2.1)))
+    (is (= 2 (jc/zrem "ztest1" "One" "Two")))))
 
 #_(deftest pool-test
   (test-redis-functions POOL))

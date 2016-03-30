@@ -12,6 +12,7 @@
 (def ^:dynamic *jedis* nil)
 
 (defprotocol JedisProvider
+  (cluster? [this])
   (get-conn [this])
   (release-conn [this conn]))
 
@@ -24,20 +25,24 @@
 
 (extend-protocol JedisProvider
   JedisPool
+  (cluster? [this]false)
   (get-conn [this]
     (.getResource this))
   (release-conn [this conn]
     (.close conn))
 
   JedisCluster
+  (cluster? [this] true)
   (get-conn [this] this)
   (release-conn [this conn])
 
   Jedis
+  (cluster? [this] false)
   (get-conn [this] this)
   (release-conn [this conn])
 
   nil
+  (cluster? [this] false)
   (get-conn [this]
     (throw (ex-info "Connection not initialized" {})))
   (release-conn [this]
@@ -142,9 +147,11 @@ lookup table"
          args))
 
 (defn evalsha [sha1 keys args]
-  (.evalsha ^Jedis *jedis* sha1
-         (if (empty? keys) [(str (java.util.UUID/randomUUID))] keys)
-         args))
+  (if (and (cluster? *jedis*)
+           (empty? keys))
+    (throw (ex-info "At least one key needed for cluster, same one as scriptload" {})))
+
+  (.evalsha ^Jedis *jedis* sha1 keys args))
 
 (defn scriptload [script key]
   (.scriptLoad ^Jedis *jedis* script key))
@@ -302,6 +309,11 @@ lookup table"
            cursor (.getStringCursor tuple)
            result (.getResult tuple)]
        {:cursor (if (= "0" cursor) nil cursor) :result result})))
+
+(defn zadd
+  ([k member score & args] (zadd k (merge {member score} (apply hash-map args))))
+  ([k ms-map]
+     (.zadd ^Jedis *jedis* k ms-map)))
 
 (defn zrem [k & v]
   (.zrem ^Jedis *jedis* k (into-array v)))
