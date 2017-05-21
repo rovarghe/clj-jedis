@@ -18,8 +18,8 @@
 (def CLUSTER (jc/cluster "localhost:9001,localhost:9002"))
 
 
-#(jc/with-jedis CLUSTER
-  (jc/zscan "ztest1"))
+#_(jc/with-jedis CLUSTER
+  (jc/incr "COUNTER"))
 
 (deftest test-with-jedis
   (jc/with-jedis  CLUSTER
